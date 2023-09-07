@@ -1,11 +1,8 @@
 const nunjucks = require('nunjucks');
-const useMailer = require('../plugins/useMailer');
 const fs = require('fs');
 const hello = fs.readFileSync('./templates/hello.html').toString();
-// const path = require('path');
-// const hello = path.resolve('../templates/hello.html?raw');
+const sendMailFromServer = require('../gmail');
 
-const mailer = useMailer();
 
 const sendMail = async (req, res) => {
     const to = req.body.to;
@@ -14,17 +11,26 @@ const sendMail = async (req, res) => {
         name: 'John Doe',
     });
 
+    const options = {
+        from: `Test Team <${process.env.EMAIL}>`,
+        to: to,
+        replyTo: process.env.EMAIL,
+        subject: 'Hello Test',
+        text: 'This is a test email',
+        html: html,
+        textEncoding: 'base64',
+        headers: [
+            { key: 'X-Application-Developer', value: 'Been Helpful' },
+            { key: 'X-Application-Version', value: 'v1.0.0' },
+        ],
+    };
+
     try {
-        const info = await mailer.sendMail({
-            from: `Test Team <${process.env.EMAIL}>`,
-            to: to,
-            subject: 'Welcome to Test',
-            html: html,
-        });
+        const messageId = await sendMailFromServer(options);
 
         res.status(200).json({
             message: 'Email sent',
-            info: info,
+            messageId: messageId,
         });
 
     } catch (error) {
